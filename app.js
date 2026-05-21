@@ -77,7 +77,13 @@ function setSentenceLang(lang) {
 
 function initKuromoji() {
   setStatus(t('loading'));
-  worker = new Worker('kuromoji-worker.js');
+  try {
+    worker = new Worker('kuromoji-worker.js');
+  } catch (e) {
+    setStatus(t('loadFail'));
+    return;
+  }
+
   worker.addEventListener('message', (e) => {
     if (e.data.type === 'ready') {
       workerReady = true;
@@ -93,6 +99,8 @@ function initKuromoji() {
       }
     }
   });
+
+  worker.onerror = () => setStatus(t('loadFail'));
 }
 
 function setStatus(msg) {
