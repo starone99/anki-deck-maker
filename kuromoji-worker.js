@@ -11,7 +11,7 @@ try {
 let tokenizer = null;
 
 kuromoji
-  .builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict' })
+  .builder({ dicPath: './dict' })
   .build((err, t) => {
     if (err) {
       postMessage({ type: 'error', message: err.message || String(err) });

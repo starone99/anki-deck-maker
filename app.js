@@ -52,6 +52,7 @@ function applyLanguage(lang) {
 document.addEventListener('DOMContentLoaded', () => {
   const savedLang = localStorage.getItem(STORAGE.lang) || 'en';
   loadFromStorage();
+  initKuromoji();
   bindEvents();
   updateAutocomplete();
   applyLanguage(savedLang);

@@ -1,0 +1,36 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download kuromoji dict files
+        run: |
+          mkdir -p dict
+          BASE="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict"
+          for f in base.dat.gz cc.dat.gz check.dat.gz tid.dat.gz tid_map.dat.gz tid_pos.dat.gz unk.dat.gz unk_char.dat.gz unk_compat.dat.gz unk_invoke.dat.gz unk_map.dat.gz unk_pos.dat.gz; do
+            curl -fsSL "$BASE/$f" -o "dict/$f"
+          done
+
+      - uses: actions/configure-pages@v4
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
