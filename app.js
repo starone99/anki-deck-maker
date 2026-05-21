@@ -52,7 +52,6 @@ function applyLanguage(lang) {
 document.addEventListener('DOMContentLoaded', () => {
   const savedLang = localStorage.getItem(STORAGE.lang) || 'en';
   loadFromStorage();
-  initKuromoji();
   bindEvents();
   updateAutocomplete();
   applyLanguage(savedLang);
@@ -76,7 +75,9 @@ function setSentenceLang(lang) {
 // ── Kuromoji Worker ───────────────────────────────────────
 
 function initKuromoji() {
+  if (worker) return;
   setStatus(t('loading'));
+
   try {
     worker = new Worker('kuromoji-worker.js');
   } catch (e) {
@@ -84,12 +85,18 @@ function initKuromoji() {
     return;
   }
 
+  const timeout = setTimeout(() => {
+    if (!workerReady) setStatus(t('loadFail'));
+  }, 30000);
+
   worker.addEventListener('message', (e) => {
     if (e.data.type === 'ready') {
+      clearTimeout(timeout);
       workerReady = true;
       setStatus(t('loaded'));
       setTimeout(() => setStatus(''), 2000);
     } else if (e.data.type === 'error') {
+      clearTimeout(timeout);
       setStatus(t('loadFail'));
     } else if (e.data.type === 'tokens') {
       const resolve = pendingRequests[e.data.id];
@@ -100,7 +107,10 @@ function initKuromoji() {
     }
   });
 
-  worker.onerror = () => setStatus(t('loadFail'));
+  worker.onerror = () => {
+    clearTimeout(timeout);
+    setStatus(t('loadFail'));
+  };
 }
 
 function setStatus(msg) {
@@ -211,6 +221,12 @@ function bindEvents() {
   document.getElementById('autoReading').addEventListener('click', async () => {
     const sentence = document.getElementById('sentence').value;
     const word = document.getElementById('targetWord').value;
+
+    if (!worker) {
+      initKuromoji();
+      setStatus(t('stillLoading'));
+      return;
+    }
     if (!workerReady) {
       setStatus(t('stillLoading'));
       return;
