@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anki Deck Maker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Anki Deck Maker</h1>
+      <div class="header-right">
+        <span id="tokenizerStatus" class="status"></span>
+        <div class="lang-select-wrap">
+          <label for="langSelect">Language</label>
+          <select id="langSelect">
+            <option value="en">English</option>
+            <option value="ko">한국어</option>
+            <option value="ja">日本語</option>
+            <option value="zh">中文</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="pt">Português</option>
+            <option value="de">Deutsch</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <section class="deck-section">
+      <label for="deckName" data-i18n="deckName">Deck Name</label>
+      <input type="text" id="deckName" data-i18n-placeholder="deckNamePlaceholder" list="deckList" autocomplete="off">
+      <datalist id="deckList"></datalist>
+    </section>
+
+    <section class="card-form">
+      <div class="form-top">
+        <h2 data-i18n="addCardTitle">Add Card</h2>
+        <div class="segmented-control">
+          <button class="seg-btn active" data-value="ja" data-i18n="japanese">Japanese</button>
+          <button class="seg-btn" data-value="en" data-i18n="english">English</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="sentence" data-i18n="sentence">Sentence</label>
+        <textarea id="sentence" rows="3" data-i18n-placeholder="sentencePlaceholder"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="targetWord" data-i18n="targetWord">Target Word</label>
+          <input type="text" id="targetWord" data-i18n-placeholder="targetWordPlaceholder">
+        </div>
+        <div class="form-group" id="readingRow">
+          <label for="reading">
+            <span data-i18n="reading">Reading</span>
+            <button id="autoReading" class="btn-auto" data-i18n="autoBtn">Auto</button>
+          </label>
+          <input type="text" id="reading" data-i18n-placeholder="readingPlaceholder">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="meaning" data-i18n="meaning">Meaning</label>
+        <input type="text" id="meaning" data-i18n-placeholder="meaningPlaceholder">
+      </div>
+
+      <div class="form-group">
+        <label for="tagInput" data-i18n="tags">Tags</label>
+        <div class="tag-input-wrap">
+          <input type="text" id="tagInput" data-i18n-placeholder="tagsPlaceholder" list="tagList" autocomplete="off">
+          <datalist id="tagList"></datalist>
+        </div>
+        <div id="currentTags" class="tag-list"></div>
+      </div>
+
+      <div class="preview">
+        <div class="preview-side">
+          <div class="preview-label" data-i18n="front">Front</div>
+          <div id="previewFront" class="preview-content"></div>
+        </div>
+        <div class="preview-side">
+          <div class="preview-label" data-i18n="back">Back</div>
+          <div id="previewBack" class="preview-content"></div>
+        </div>
+      </div>
+
+      <button id="addCard" class="btn-primary" data-i18n="addCardBtn">Add Card</button>
+    </section>
+
+    <section class="list-section">
+      <div class="list-header">
+        <h2 id="cardListTitle"></h2>
+        <div class="list-header-actions">
+          <button id="exportCSV" class="btn-export" data-i18n="exportCSV">Export CSV</button>
+          <button id="clearAll" class="btn-clear" data-i18n="clearAll">Clear All</button>
+        </div>
+      </div>
+      <div id="cardList"></div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
