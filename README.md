@@ -1,5 +1,7 @@
 # Anki Deck Maker
 
+**https://starone99.github.io/anki-deck-maker**
+
 A static web app for creating personalized Anki flashcard decks from Japanese example sentences.
 
 ## Features
