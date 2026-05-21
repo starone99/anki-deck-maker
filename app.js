@@ -6,7 +6,10 @@ const STORAGE = {
   lang: 'anki-maker:lang',
 };
 
-let tokenizer = null;
+let worker = null;
+let workerReady = false;
+let pendingRequests = {};
+let requestId = 0;
 let cards = [];
 let currentTags = [];
 let editingId = null;
@@ -70,21 +73,26 @@ function setSentenceLang(lang) {
   }
 }
 
-// ── Kuromoji ──────────────────────────────────────────────
+// ── Kuromoji Worker ───────────────────────────────────────
 
 function initKuromoji() {
   setStatus(t('loading'));
-  kuromoji
-    .builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict' })
-    .build((err, t_) => {
-      if (err) {
-        setStatus(t('loadFail'));
-        return;
-      }
-      tokenizer = t_;
+  worker = new Worker('kuromoji-worker.js');
+  worker.addEventListener('message', (e) => {
+    if (e.data.type === 'ready') {
+      workerReady = true;
       setStatus(t('loaded'));
       setTimeout(() => setStatus(''), 2000);
-    });
+    } else if (e.data.type === 'error') {
+      setStatus(t('loadFail'));
+    } else if (e.data.type === 'tokens') {
+      const resolve = pendingRequests[e.data.id];
+      if (resolve) {
+        resolve(e.data.tokens);
+        delete pendingRequests[e.data.id];
+      }
+    }
+  });
 }
 
 function setStatus(msg) {
@@ -97,9 +105,18 @@ function katakanaToHiragana(str) {
   );
 }
 
-function getReading(sentence, word) {
-  if (!tokenizer || !sentence || !word) return '';
-  const tokens = tokenizer.tokenize(sentence);
+function tokenize(sentence) {
+  return new Promise((resolve) => {
+    if (!workerReady) { resolve([]); return; }
+    const id = requestId++;
+    pendingRequests[id] = resolve;
+    worker.postMessage({ type: 'tokenize', sentence, id });
+  });
+}
+
+async function getReading(sentence, word) {
+  if (!workerReady || !sentence || !word) return '';
+  const tokens = await tokenize(sentence);
   let reading = '';
   let remaining = word;
 
@@ -165,12 +182,12 @@ function bindEvents() {
 
   function triggerAutoReading() {
     clearTimeout(readingTimer);
-    readingTimer = setTimeout(() => {
+    readingTimer = setTimeout(async () => {
       if (sentenceLang === 'ja') {
         const sentence = document.getElementById('sentence').value;
         const word = document.getElementById('targetWord').value;
-        if (sentence && word && tokenizer) {
-          const r = getReading(sentence, word);
+        if (sentence && word && workerReady) {
+          const r = await getReading(sentence, word);
           if (r) document.getElementById('reading').value = r;
         }
       }
@@ -183,14 +200,14 @@ function bindEvents() {
   document.getElementById('reading').addEventListener('input', updatePreview);
   document.getElementById('meaning').addEventListener('input', updatePreview);
 
-  document.getElementById('autoReading').addEventListener('click', () => {
+  document.getElementById('autoReading').addEventListener('click', async () => {
     const sentence = document.getElementById('sentence').value;
     const word = document.getElementById('targetWord').value;
-    if (!tokenizer) {
+    if (!workerReady) {
       setStatus(t('stillLoading'));
       return;
     }
-    const r = getReading(sentence, word);
+    const r = await getReading(sentence, word);
     if (r) {
       document.getElementById('reading').value = r;
       updatePreview();
