@@ -33,9 +33,7 @@ function applyLanguage(lang) {
     el.textContent = t(el.dataset.i18n);
   });
 
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    el.placeholder = t(el.dataset.i18nPlaceholder);
-  });
+  applyPlaceholders();
 
   updateCardCountDisplay();
   updatePreview();
@@ -60,6 +58,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Sentence language ─────────────────────────────────────
 
+function applyPlaceholders() {
+  const suffix = sentenceLang === 'en' ? 'En' : '';
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    el.placeholder = t(key + suffix) || t(key);
+  });
+}
+
 function setSentenceLang(lang) {
   sentenceLang = lang;
   document.querySelectorAll('.seg-btn').forEach(btn => {
@@ -67,6 +73,7 @@ function setSentenceLang(lang) {
   });
   const readingRow = document.getElementById('readingRow');
   readingRow.style.display = lang === 'ja' ? '' : 'none';
+  applyPlaceholders();
   if (lang === 'en') {
     document.getElementById('reading').value = '';
     updatePreview();
@@ -261,6 +268,11 @@ function bindEvents() {
   document.getElementById('addCard').addEventListener('click', submitCard);
   document.getElementById('clearAll').addEventListener('click', clearAllCards);
   document.getElementById('exportCSV').addEventListener('click', exportCSV);
+  document.getElementById('importCSV').addEventListener('click', () => document.getElementById('importCSVFile').click());
+  document.getElementById('importCSVFile').addEventListener('change', (e) => {
+    if (e.target.files[0]) importCSV(e.target.files[0]);
+    e.target.value = '';
+  });
   document.getElementById('langSelect').addEventListener('change', (e) => applyLanguage(e.target.value));
 
   document.getElementById('deckName').addEventListener('change', (e) => {
@@ -395,7 +407,11 @@ function renderCardList() {
   `).join('');
 }
 
-// ── CSV Export ────────────────────────────────────────────
+// ── Deck Export ───────────────────────────────────────────
+
+function csvCell(val) {
+  return `"${String(val).replace(/"/g, '""')}"`;
+}
 
 function exportCSV() {
   if (cards.length === 0) {
@@ -405,18 +421,15 @@ function exportCSV() {
 
   const deckName = document.getElementById('deckName').value.trim() || 'anki-deck';
 
-  const rows = [
-    '#separator:comma',
-    '#html:true',
-    `#deck:${deckName}`,
-    '#notetype:Basic',
-  ];
-
+  const rows = ['sentence,word,reading,meaning,tags'];
   cards.forEach(card => {
-    const front = makeFront(card.sentence, card.word).replace(/"/g, '""');
-    const back = makeBack(card.word, card.reading, card.meaning).replace(/"/g, '""');
-    const tags = card.tags.join(' ').replace(/"/g, '""');
-    rows.push(`"${front}","${back}","${tags}"`);
+    rows.push([
+      csvCell(card.sentence),
+      csvCell(card.word),
+      csvCell(card.reading),
+      csvCell(card.meaning),
+      csvCell(card.tags.join(' ')),
+    ].join(','));
   });
 
   const csv = rows.join('\n');
@@ -427,6 +440,66 @@ function exportCSV() {
   a.download = `${deckName}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ── CSV Import ────────────────────────────────────────────
+
+function parseCSVRow(row) {
+  const fields = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < row.length; i++) {
+    const ch = row[i];
+    if (inQuotes) {
+      if (ch === '"' && row[i + 1] === '"') { field += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else field += ch;
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { fields.push(field); field = ''; }
+      else field += ch;
+    }
+  }
+  fields.push(field);
+  return fields;
+}
+
+function importCSV(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result.replace(/^﻿/, '');
+    const lines = text.split(/\r?\n/).filter(l => l.trim() && !l.startsWith('#') && !/^sentence[,"]/.test(l));
+
+    const existingKeys = new Set(cards.map(c => `${c.sentence}|${c.word}`));
+    let imported = 0;
+    let skipped = 0;
+
+    for (const line of lines) {
+      const [sentence, word, reading, meaning, tagsRaw] = parseCSVRow(line);
+      if (!sentence || !word) continue;
+
+      const key = `${sentence}|${word}`;
+      if (existingKeys.has(key)) { skipped++; continue; }
+
+      const tags = tagsRaw ? tagsRaw.split(/\s+/).filter(Boolean) : [];
+      cards.push({ id: Date.now() + imported, sentence, word, reading: reading || '', meaning: meaning || '', tags });
+      existingKeys.add(key);
+      imported++;
+    }
+
+    if (imported === 0 && skipped === 0) {
+      alert(t('importError'));
+      return;
+    }
+
+    saveCards();
+    updateAutocomplete();
+    renderCardList();
+    updateCardCountDisplay();
+    const msg = t('importSuccess');
+    alert(typeof msg === 'function' ? msg(imported, skipped) : msg);
+  };
+  reader.readAsText(file, 'UTF-8');
 }
 
 // ── LocalStorage ──────────────────────────────────────────
