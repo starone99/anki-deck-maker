@@ -507,3 +507,11 @@ textarea {
     padding-top: 6px;
   }
 }
+
+.app-footer {
+  margin-top: 24px;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+}

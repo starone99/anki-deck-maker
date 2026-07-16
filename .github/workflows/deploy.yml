@@ -26,6 +26,12 @@ jobs:
             curl -fsSL "$BASE/$f" -o "dict/$f"
           done
 
+      - name: Stamp version
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          DEPLOYED_AT=$(TZ=Asia/Seoul date +"%Y-%m-%d %H:%M:%S KST")
+          sed -i "s|<span id=\"appVersion\">dev</span>|<span id=\"appVersion\">Updated ${DEPLOYED_AT} (${SHORT_SHA})</span>|" index.html
+
       - uses: actions/configure-pages@v4
 
       - uses: actions/upload-pages-artifact@v3
