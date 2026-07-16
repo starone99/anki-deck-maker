@@ -171,7 +171,7 @@ function makeFront(sentence, word) {
 
 function makeBack(word, reading, meaning) {
   let back = escapeHtml(word || '');
-  if (reading) back += `[${escapeHtml(reading)}]`;
+  if (reading) back = `<ruby>${back}<rt>${escapeHtml(reading)}</rt></ruby>`;
   if (meaning) back += `<br>${escapeHtml(meaning)}`;
   return back;
 }
@@ -467,7 +467,7 @@ async function exportApkg() {
         name: 'Card 1', ord: 0,
         qfmt: '{{Sentence}}',
         afmt: isJa
-          ? '{{FrontSide}}<hr id=answer>{{Word}}[{{Reading}}]<br>{{Meaning}}'
+          ? '{{FrontSide}}<hr id=answer><ruby>{{Word}}<rt>{{Reading}}</rt></ruby><br>{{Meaning}}'
           : '{{FrontSide}}<hr id=answer>{{Word}}<br>{{Meaning}}',
         did: null, bqfmt: '', bafmt: '', mod: 0, usn: 0,
       }],
